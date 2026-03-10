@@ -4,7 +4,6 @@ st.title("Smart Resume Analyzer")
 
 st.write("Upload your resume and compare it with a job description.")
 
-# Skills list
 skills = [
     "python",
     "java",
@@ -16,7 +15,6 @@ skills = [
     "docker",
 ]
 
-# Upload resume
 resume = st.file_uploader("Upload your Resume", type=["txt"])
 
 resume_text = ""
@@ -25,24 +23,22 @@ if resume:
     resume_text = resume.read().decode("utf-8").lower()
     st.success("Resume uploaded successfully!")
 
-    st.subheader("Resume Content")
-    st.write(resume_text)
-
-
-# Job description
 st.subheader("Paste Job Description")
-
 job_description = st.text_area("Enter the Job Description")
 
-if job_description:
+if resume_text and job_description:
 
     jd_text = job_description.lower()
 
     matched_skills = []
+    missing_skills = []
 
     for skill in skills:
-        if skill in resume_text and skill in jd_text:
-            matched_skills.append(skill)
+        if skill in jd_text:
+            if skill in resume_text:
+                matched_skills.append(skill)
+            else:
+                missing_skills.append(skill)
 
     st.subheader("Matched Skills")
 
@@ -50,4 +46,12 @@ if job_description:
         for skill in matched_skills:
             st.write("✅", skill)
     else:
-        st.write("No matching skills found.")
+        st.write("No matching skills.")
+
+    st.subheader("Missing Skills")
+
+    if missing_skills:
+        for skill in missing_skills:
+            st.write("❌", skill)
+    else:
+        st.write("No missing skills. Great match!")
