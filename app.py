@@ -42,16 +42,22 @@ if resume_text and job_description:
 
     st.subheader("Matched Skills")
 
-    if matched_skills:
-        for skill in matched_skills:
-            st.write("✅", skill)
-    else:
-        st.write("No matching skills.")
+    for skill in matched_skills:
+        st.write("✅", skill)
 
     st.subheader("Missing Skills")
 
-    if missing_skills:
-        for skill in missing_skills:
-            st.write("❌", skill)
-    else:
-        st.write("No missing skills. Great match!")
+    for skill in missing_skills:
+        st.write("❌", skill)
+
+    # Match Score
+    total_skills = len(matched_skills) + len(missing_skills)
+
+    if total_skills > 0:
+        score = int((len(matched_skills) / total_skills) * 100)
+
+        st.subheader("Resume Match Score")
+
+        st.write(f"### {score}% Match")
+
+        st.progress(score / 100)
