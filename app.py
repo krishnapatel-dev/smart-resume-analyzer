@@ -50,6 +50,15 @@ if resume_text and job_description:
     for skill in missing_skills:
         st.write("❌", skill)
 
+    # Recommended skills to learn
+    st.subheader("Recommended Skills to Learn")
+
+    if missing_skills:
+        for skill in missing_skills:
+            st.write("📚", skill)
+    else:
+        st.write("Your resume already matches the job requirements!")
+
     # Match Score
     total_skills = len(matched_skills) + len(missing_skills)
 
