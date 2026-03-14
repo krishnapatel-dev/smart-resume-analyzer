@@ -1,26 +1,54 @@
 import streamlit as st
+import pdfplumber
+import docx
+import spacy
+from sentence_transformers import SentenceTransformer, util
+
+nlp = spacy.load("en_core_web_sm")
+
+model = SentenceTransformer('all-MiniLM-L6-v2')
+
+def extract_skills(text):
+    doc = nlp(text)
+    skills = []
+
+    skill_keywords = ["python","sql","docker","aws","machine learning","react"]
+
+    for token in doc:
+        if token.text.lower() in skill_keywords:
+            skills.append(token.text.lower())
+
+    return list(set(skills))
+
+
+def extract_text(file):
+
+    if file.type == "application/pdf":
+        with pdfplumber.open(file) as pdf:
+            text = ""
+            for page in pdf.pages:
+                text += page.extract_text() or ""
+
+        return text
+
+    elif file.type == "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
+        doc = docx.Document(file)
+        text = "\n".join([para.text for para in doc.paragraphs])
+        return text
+
+    elif file.type == "text/plain":
+        return file.read().decode("utf-8")
+
 
 st.title("Smart Resume Analyzer")
-
 st.write("Upload your resume and compare it with a job description.")
 
-skills = [
-    "python",
-    "java",
-    "sql",
-    "machine learning",
-    "data analysis",
-    "react",
-    "javascript",
-    "docker",
-]
-
-resume = st.file_uploader("Upload your Resume", type=["txt"])
-
+resume = st.file_uploader("Upload your Resume", type=["txt", "pdf", "docx"])
 resume_text = ""
 
 if resume:
-    resume_text = resume.read().decode("utf-8").lower()
+    resume_text = extract_text(resume).lower()
+    resume_skills = extract_skills(resume_text)
     st.success("Resume uploaded successfully!")
 
 st.subheader("Paste Job Description")
@@ -30,59 +58,16 @@ if resume_text and job_description:
 
     jd_text = job_description.lower()
 
-    matched_skills = []
-    missing_skills = []
+    # Sentence Transformer similarity
+    resume_embedding = model.encode(resume_text)
+    jd_embedding = model.encode(job_description)
 
-    for skill in skills:
-        if skill in jd_text:
-            if skill in resume_text:
-                matched_skills.append(skill)
-            else:
-                missing_skills.append(skill)
+    similarity = util.cos_sim(resume_embedding, jd_embedding)
 
-    st.subheader("Matched Skills")
+    semantic_score = float(similarity[0][0]) * 100
 
-    # Create two columns
-    col1, col2 = st.columns(2)
+    st.subheader("Semantic Similarity Score")
 
-    with col1:
-        st.subheader("Matched Skills")
-        if matched_skills:
-            for skill in matched_skills:
-                st.write("✅", skill)
-        else:
-            st.write("No matched skills")
+    st.metric(label="Resume-JD Similarity", value=f"{semantic_score:.2f}%")
 
-    with col2:
-        st.subheader("Missing Skills")
-        if missing_skills:
-            for skill in missing_skills:
-                st.write("❌", skill)
-        else:
-            st.write("No missing skills")
-
-    # Recommended skills to learn
-    st.subheader("Recommended Skills to Learn")
-
-    if missing_skills:
-        for skill in missing_skills:
-            st.write("📚", skill)
-    else:
-        st.write("Your resume already matches the job requirements!")
-
-    # Match Score
-    total_skills = len(matched_skills) + len(missing_skills)
-
-    if total_skills > 0:
-        score = int((len(matched_skills) / total_skills) * 100)
-
-        st.subheader("Resume Match Score")
-
-        total_skills = len(matched_skills) + len(missing_skills)
-
-        if total_skills > 0:
-            score = int((len(matched_skills) / total_skills) * 100)
-
-            st.metric(label="Match Score", value=f"{score}%")
-
-            st.progress(score / 100)
+    st.progress(semantic_score / 100)
